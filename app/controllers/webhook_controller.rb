@@ -3,11 +3,18 @@ require "uri"
 
 class WebhookController < ApplicationController
 	def index
-		city = request["result"]["parameters"]["address"]["city"]
-		country = request["result"]["parameters"]["address"]["country"]
-		place = "#{city}, #{country}"
-		call_api = HTTP.get("https://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20weather.forecast%20where%20woeid%20in%20(select%20woeid%20from%20geo.places(1)%20where%20text%3D%22#{URI.encode(place)}%22)&format=json")
+		parameters = request["result"]["parameters"]
+		address = parameters["address"]
+		if address.is_a? String
+			city = address
+		else
+			city = address["city"]
+			country = address["country"]
+		end
 		# byebug
+		unit = parameters["unit"].present? ? parameters["unit"] : "F"
+		place = "#{city}, #{country}"
+		call_api = HTTP.get("https://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20weather.forecast%20where%20woeid%20in%20(select%20woeid%20from%20geo.places(1)%20where%20text%3D%22#{URI.encode(place)}%22)%20%20and%20u%3D%22#{unit}%22&format=json")
 		response = JSON.parse(call_api.to_s)
 
 		unless response["query"] && response["query"]["results"]
